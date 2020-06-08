@@ -1178,7 +1178,7 @@ bool Sync::scan(string* localpath, FileAccess* fa, LocalNode* localnode)
 
                 localpath->append(IGNORE_FILENAME);
 
-                if (!client->app->sync_syncable(this, IGNORE_FILENAME.c_str(), localpath))
+                if (localnode->isExcluded(IGNORE_FILENAME))
                 {
                     LOG_debug << "Excluded: " << IGNORE_FILENAME;
                     break;
@@ -1226,8 +1226,7 @@ bool Sync::scan(string* localpath, FileAccess* fa, LocalNode* localnode)
                 localpath->append(localname);
 
                 // check if this record is to be ignored
-                if (client->app->sync_syncable(this, name.c_str(), localpath)
-                    && localnode->isIncluded(name.c_str()))
+                if (localnode->isIncluded(name.c_str()))
                 {
                     // skip the sync's debris folder
                     if (isPathSyncable(*localpath, localdebris, client->fsaccess->localseparator))
@@ -1344,11 +1343,16 @@ LocalNode* Sync::checkpath(LocalNode* l, string* localpath, string* localname, d
         string name = newname.size() ? newname : l->name;
         client->fsaccess->local2name(&name, mFilesystemType);
 
-        if (!client->app->sync_syncable(this, name.c_str(), &tmppath)
-            || (parent && parent->isExcluded(name.c_str())))
+        // Check if this node is excluded.
         {
-            LOG_debug << "Excluded: " << path;
-            return NULL;
+            auto effectiveParent =
+              parent ? parent : localroot.get();
+
+            if (effectiveParent->isExcluded(name))
+            {
+                LOG_debug << "Excluded: " << path;
+                return nullptr;
+            }
         }
 
         isroot = l == localroot.get() && !newname.size();
