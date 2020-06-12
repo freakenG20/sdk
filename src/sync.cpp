@@ -1194,7 +1194,7 @@ bool Sync::scan(string* localpath, FileAccess* fa, LocalNode* localnode)
 
                 if (initializing)
                 {
-                    node = checkpath(NULL, localpath, NULL, NULL, false, da);
+                    node = checkpath(NULL, localpath, NULL, NULL, false, NULL);
                 }
 
                 if (!node || node == (LocalNode*)~0)
@@ -1409,6 +1409,12 @@ LocalNode* Sync::checkpath(LocalNode* l, string* localpath, string* localname, d
                     }
                     else
                     {
+                        if (initializing && isIgnoreFile(*l))
+                        {
+                            parent->loadFilters();
+                            parent->applyFilters();
+                        }
+
                         localbytes += l->size;
                     }
 
@@ -1431,12 +1437,6 @@ LocalNode* Sync::checkpath(LocalNode* l, string* localpath, string* localname, d
             else
             {
                 LOG_verbose << "New file. FaType: " << fa->type << "  FaSize: " << fa->size << "  FaMtime: " << fa->mtime;
-            }
-
-            if (fa->type == FILENODE && fname == IGNORE_FILENAME)
-            {
-                assert(parent);
-                parent->loadFilters();
             }
 
             return NULL;
@@ -1501,6 +1501,9 @@ LocalNode* Sync::checkpath(LocalNode* l, string* localpath, string* localname, d
                                     {
                                         LOG_debug << "File move/overwrite detected";
 
+                                        // don't automatically update our the parent's filters.
+                                        l->clearParentFilterOnDeletion(false);
+
                                         // delete existing LocalNode...
                                         delete l;
 
@@ -1555,6 +1558,13 @@ LocalNode* Sync::checkpath(LocalNode* l, string* localpath, string* localname, d
                             statecacheadd(l);
 
                             fa.reset();
+
+                            if (isIgnoreFile(*l))
+                            {
+                                l->parent->loadFilters();
+                                l->parent->applyFilters();
+                                l->parent->scan(true);
+                            }
 
                             if (isnetwork && l->type == FILENODE)
                             {
@@ -1757,12 +1767,6 @@ LocalNode* Sync::checkpath(LocalNode* l, string* localpath, string* localname, d
                     l = new LocalNode;
                     l->init(this, fa->type, parent, localname ? localpath : &tmppath, client->fsaccess->fsShortname(localname ? *localpath : tmppath));
 
-                    if (isIgnoreFile(*l))
-                    {
-                        assert(parent);
-                        parent->loadFilters();
-                    }
-
                     if (fa->fsidvalid)
                     {
                         l->setfsid(fa->fsid, client->fsidnode);
@@ -1847,6 +1851,15 @@ LocalNode* Sync::checkpath(LocalNode* l, string* localpath, string* localname, d
 
         if (changed || newnode)
         {
+            if (isIgnoreFile(*l))
+            {
+                assert(l->parent);
+
+                l->parent->loadFilters();
+                l->parent->applyFilters();
+                l->parent->scan(true);
+            }
+
             if (isnetwork && l->type == FILENODE)
             {
                 LOG_debug << "Queueing extra fs notification for new file";
