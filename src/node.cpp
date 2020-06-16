@@ -2001,9 +2001,10 @@ LocalNode* LocalNode::unserialize(Sync* sync, const string* d)
     return l;
 }
 
-void LocalNode::applyFilters()
+bool LocalNode::applyFilters()
 {
     localnode_list pending;
+    size_t numUnignored = 0;
 
     LOG_verbose << "Applying filters for " << name;
     if (mPendingFilterOp)
@@ -2024,6 +2025,9 @@ void LocalNode::applyFilters()
     {
         LocalNode& child = *pending.front();
 
+        // were we ignored?
+        const bool wasIgnored = child.mIgnored;
+        
         // recompute mParentFilterPending and mPruned.
         child.recomputeFilterFlags();
 
@@ -2053,6 +2057,10 @@ void LocalNode::applyFilters()
                 sync->statecacheadd(&child);
             }
         }
+        else
+        {
+            numUnignored += wasIgnored;
+        }
 
         // push this subtree's children in reverse order.
         auto i = child.children.rbegin();
@@ -2066,6 +2074,11 @@ void LocalNode::applyFilters()
         // we're done with this node.
         pending.pop_front();
     }
+
+    LOG_verbose << numUnignored
+                << " node(s) have become unignored.";
+
+    return numUnignored > 0;
 }
 
 void LocalNode::clearFilters()

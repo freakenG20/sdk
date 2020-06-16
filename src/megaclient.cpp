@@ -3828,6 +3828,18 @@ bool MegaClient::isFetchingNodesPendingCS()
 }
 
 #ifdef ENABLE_SYNC
+
+void MegaClient::applyFilters()
+{
+    for (Sync* sync : syncs)
+    {
+        const bool newlyIncluded = sync->localroot->applyFilters();
+
+        syncdownrequired |= newlyIncluded;
+        syncuprequired |= newlyIncluded;
+    }
+}
+
 void MegaClient::resumeResumableSyncs()
 {
 
@@ -3850,7 +3862,9 @@ void MegaClient::resumeResumableSyncs()
         }
     }
 }
-#endif
+
+#endif /* ENABLE_SYNC */
+
 // determine next scheduled transfer retry
 void MegaClient::nexttransferretry(direction_t d, dstime* dsmin)
 {

@@ -454,6 +454,9 @@ public:
     bool xferpaused[2];
 
 #ifdef ENABLE_SYNC
+    // reapplies filters on all sync trees.
+    void applyFilters();
+
     // active syncs
     sync_list syncs;
 
