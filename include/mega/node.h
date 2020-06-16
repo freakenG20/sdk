@@ -390,10 +390,9 @@ struct MEGA_API LocalNode : public File
     ~LocalNode();
 
     // recursively update child filter state.
-    // returns true if any nodes have become unignored.
     void applyFilters();
 
-    // clear filters.
+    // conditionally clears this node's filters.
     void clearFilters();
 
     // specify whether we should clear our parent's filters when we are deleted.
@@ -417,15 +416,14 @@ struct MEGA_API LocalNode : public File
     // true if name should not be ignored.
     bool isIncluded(const string& name) const;
 
-    // true if this node can be pruned.
-    bool isPruned() const;
+    // true if this node is ignored.
+    bool isIgnored() const;
 
     // destructively updates filters.
     void loadFilters(string& rootPath);
-    void loadFilters();
 
-    // issue a scan for this subtree.
-    void scan(const bool full = false);
+    // conditionally loads this node's filters.
+    void loadFilters();
 
 private:
     // filter flags.
@@ -437,17 +435,28 @@ private:
         // true if our filter is currently being downloaded.
         bool mFilterDownloading : 1;
 
+        // true if this node is ignored.
+        bool mIgnored : 1;
+
         // true if some parent of ours is downloading their filter.
         bool mParentFilterDownloading : 1;
-
-        // true if this node is being or should be pruned.
-        bool mPruned : 1;
     };
 
-    // purges pending directory notification for this node and its children.
-    void purgePendingNotifications();
+    // unconditionally clears this node's filters.
+    void doClearFilters();
+
+    // unconditionally loads this node's filters.
+    void doLoadFilters();
+
+    // regenerates mIgnored and mParentFilterDownloading based on parent.
+    // executes deferred filter operations.
+    void recomputeFilterFlags();
 
     FilterChain mFilters;
+
+    // non-null if we tried to clear or load the filters while we were
+    // ignored or while our (or our parents) filter was downloading.
+    void (LocalNode::*mPendingFilterOp)();
 };
 
 template <> inline NewNode*& crossref_other_ptr_ref<LocalNode, NewNode>(LocalNode* p) { return p->newnode.ptr; }
