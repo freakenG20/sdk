@@ -3831,13 +3831,38 @@ bool MegaClient::isFetchingNodesPendingCS()
 
 void MegaClient::applyFilters()
 {
+    if (!ignoreFilesEnabled)
+    {
+        return;
+    }
+
     for (Sync* sync : syncs)
     {
-        const bool newlyIncluded = sync->localroot->applyFilters();
-
-        syncdownrequired |= newlyIncluded;
-        syncuprequired |= newlyIncluded;
+        syncdownrequired |= sync->localroot->applyFilters();
+        syncuprequired |= syncdownrequired;
     }
+}
+
+void MegaClient::clearFilters()
+{
+    for (Sync* sync : syncs)
+    {
+        sync->localroot->clearAllFilters();
+    }
+    
+    syncdownrequired = true;
+    syncuprequired = true;
+}
+
+void MegaClient::loadFilters()
+{
+    for (Sync* sync : syncs)
+    {
+        sync->localroot->loadAllFilters();
+    }
+
+    syncdownrequired = true;
+    syncuprequired = true;
 }
 
 void MegaClient::resumeResumableSyncs()

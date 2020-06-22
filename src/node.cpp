@@ -2081,6 +2081,52 @@ bool LocalNode::applyFilters()
     return numUnignored > 0;
 }
 
+void LocalNode::clearAllFilters()
+{
+    assert(parent == nullptr);
+    assert(type == FOLDERNODE);
+
+    localnode_list pending;
+
+    // clear general filter state.
+    mIgnored = false;
+    mParentFilterDownloading = false;
+
+    // queue self.
+    pending.emplace_back(this);
+
+    while (pending.size())
+    {
+        LocalNode& node = *pending.front();
+
+        // purge filters.
+        node.mFilters.clear();
+
+        // clear directory filter state.
+        node.mFilterDownloading = false;
+        node.mPendingFilterOp = nullptr;
+
+        // process children.
+        // queue subdirectories.
+        for (auto& child_it : node.children)
+        {
+            LocalNode& child = *child_it.second;
+
+            // clear general filter state.
+            child.mIgnored = false;
+            child.mParentFilterDownloading = false;
+
+            if (child.type == FOLDERNODE)
+            {
+                pending.emplace_back(&child);
+            }
+        }
+
+        // done with this node.
+        pending.pop_front();
+    }
+}
+
 void LocalNode::clearFilters()
 {
     if (mIgnored || isFilterDownloading())
@@ -2245,6 +2291,24 @@ bool LocalNode::isFilterStillDownloading(const remotenode_map& children) const
            && child_it->second->syncget;
 }
 
+bool LocalNode::isFilterStillDownloading() const
+{
+    if (!node)
+    {
+        return false;
+    }
+
+    for (auto& child : node->children)
+    {
+        if (isIgnoreFile(*child) && child->syncget)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool LocalNode::isIncluded(const string& name) const
 {
     return !isExcluded(name);
@@ -2253,6 +2317,90 @@ bool LocalNode::isIncluded(const string& name) const
 bool LocalNode::isIgnored() const
 {
     return mIgnored && !isBusy();
+}
+
+void LocalNode::loadAllFilters()
+{
+    assert(parent == nullptr);
+    assert(type == FOLDERNODE);
+
+    localnode_list pending;
+
+    // general filter state.
+    mIgnored = false;
+    mParentFilterDownloading = false;
+
+    // directory filter state.
+    if (hasIgnoreFile())
+    {
+        mFilterDownloading = isFilterStillDownloading();
+  
+        // load filters.
+        if (!mFilterDownloading)
+        {
+            loadFilters();
+        }
+    }
+    else
+    {
+        mFilterDownloading = false;
+    }
+
+    // process children.
+    for (auto& child_it : children)
+    {
+        LocalNode& child = *child_it.second;
+
+        // general filter state.
+        child.mIgnored = isExcluded(child.name);
+        child.mParentFilterDownloading = isFilterDownloading();
+
+        // queue subdirectories.
+        if (child.type == FOLDERNODE)
+        {
+            pending.emplace_back(&child);
+        }
+    }
+
+    while (pending.size())
+    {
+        LocalNode& node = *pending.front();
+
+        // directory filter state.
+        if (node.hasIgnoreFile())
+        {
+            node.mFilterDownloading = node.isFilterStillDownloading();
+
+            if (!node.isFilterDownloading())
+            {
+                // will be deferred if we're ignored.
+                node.loadFilters();
+            }
+        }
+        else
+        {
+            node.mFilterDownloading = false;
+        }
+
+        // process children.
+        for (auto& child_it : node.children)
+        {
+            LocalNode& child = *child_it.second;
+
+            // general filter state.
+            child.mIgnored = node.isExcluded(child.name);
+            child.mParentFilterDownloading = node.isFilterDownloading();
+
+            // queue subdirectory.
+            if (child.type == FOLDERNODE)
+            {
+                pending.emplace_back(&child);
+            }
+        }
+
+        // done with this node.
+        pending.pop_front();
+    }
 }
 
 void LocalNode::loadFilters(string& rootPath)
@@ -2317,6 +2465,11 @@ void LocalNode::doLoadFilters()
 
     getlocalpath(&path);
     loadFilters(path);
+}
+
+bool LocalNode::hasIgnoreFile() const
+{
+    return children.count(&Sync::IGNORE_FILENAME) > 0;
 }
 
 void LocalNode::recomputeFilterFlags()
@@ -2424,7 +2577,8 @@ bool isBelow(const LocalNode& x, const LocalNode& y)
 
 bool isIgnoreFile(const LocalNode& node)
 {
-    return node.type == FILENODE
+    return node.sync->client->ignoreFilesEnabled
+           && node.type == FILENODE
            && node.name == Sync::IGNORE_FILENAME;
 }
 
@@ -2432,7 +2586,8 @@ bool isIgnoreFile(const Node& node)
 {
     attr_map::const_iterator name_it;
 
-    return node.type == FILENODE
+    return node.client->ignoreFilesEnabled
+           && node.type == FILENODE
            && ((name_it = node.attrs.map.find('n'))
                != node.attrs.map.end())
            && name_it->second == Sync::IGNORE_FILENAME;

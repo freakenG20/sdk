@@ -3198,6 +3198,16 @@ void MegaApi::disableSync(MegaSync *sync, MegaRequestListener *listener)
     pImpl->disableSync(sync ? sync->getMegaHandle() : UNDEF, listener);
 }
 
+void MegaApi::ignoreFilesEnabled(const bool enabled)
+{
+    pImpl->ignoreFilesEnabled(enabled);
+}
+
+bool MegaApi::ignoreFilesEnabled()
+{
+    return pImpl->ignoreFilesEnabled();
+}
+
 void MegaApi::removeSyncs(MegaRequestListener *listener)
 {
    pImpl->stopSyncs(listener);

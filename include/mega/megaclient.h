@@ -454,8 +454,14 @@ public:
     bool xferpaused[2];
 
 #ifdef ENABLE_SYNC
-    // reapplies filters on all sync trees.
+    // applies filters in all syncs.
     void applyFilters();
+    
+    // clears filters in all syncs.
+    void clearFilters();
+
+    // loads filters contained in all syncs.
+    void loadFilters();
 
     // active syncs
     sync_list syncs;
@@ -468,6 +474,9 @@ public:
 
     // whether we allow the automatic resumption of syncs
     bool allowAutoResumeSyncs = true;
+
+    // whether we process filters contained within ignore files.
+    bool ignoreFilesEnabled = true;
 #endif
 
     // if set, symlinks will be followed except in recursive deletions

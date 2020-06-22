@@ -8451,6 +8451,34 @@ void MegaApiImpl::disableSync(handle nodehandle, MegaRequestListener *listener)
     waiter->notify();
 }
 
+void MegaApiImpl::ignoreFilesEnabled(const bool enabled)
+{
+    SdkMutexGuard guard(sdkMutex);
+
+    if (client->ignoreFilesEnabled == enabled)
+    {
+        return;
+    }
+
+    if ((client->ignoreFilesEnabled = enabled))
+    {
+        LOG_verbose << "Enabling ignore file functionality...";
+        client->loadFilters();
+    }
+    else
+    {
+        LOG_verbose << "Disabling ignore file functionality...";
+        client->clearFilters();
+    }
+}
+
+bool MegaApiImpl::ignoreFilesEnabled()
+{
+    SdkMutexGuard guard(sdkMutex);
+
+    return client->ignoreFilesEnabled;
+}
+
 int MegaApiImpl::getNumActiveSyncs()
 {
     sdkMutex.lock();

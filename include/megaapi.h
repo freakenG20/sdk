@@ -12660,6 +12660,21 @@ class MegaApi
         void disableSync(MegaSync *sync, MegaRequestListener *listener = NULL);
 
         /**
+         * Enables or disables ignore file functionality.
+         *
+         * @param enabled
+         * True if filters contained within ignore files should be processed.
+         */
+        void ignoreFilesEnabled(const bool enabled);
+
+        /**
+         * Query whether ignore file functionality is enabled.
+         *
+         * @return True if ignore file functionality is enabled.
+         */
+        bool ignoreFilesEnabled();
+
+        /**
          * @brief Remove all active synced folders
          *
          * All folders will stop being synced. Nothing in the local nor in the remote folders

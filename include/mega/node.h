@@ -393,6 +393,9 @@ struct MEGA_API LocalNode : public File
     // returns true if any nodes have become unignored.
     bool applyFilters();
 
+    // unconditionally clears all filters.
+    void clearAllFilters();
+
     // conditionally clears this node's filters.
     void clearFilters();
 
@@ -413,12 +416,16 @@ struct MEGA_API LocalNode : public File
 
     // true if this node's filter is still downloading.
     bool isFilterStillDownloading(const remotenode_map& children) const;
+    bool isFilterStillDownloading() const;
 
     // true if name should not be ignored.
     bool isIncluded(const string& name) const;
 
     // true if this node is ignored.
     bool isIgnored() const;
+
+    // unconditionally loads and applies all filters.
+    void loadAllFilters();
 
     // destructively updates filters.
     void loadFilters(string& rootPath);
@@ -448,6 +455,9 @@ private:
 
     // unconditionally loads this node's filters.
     void doLoadFilters();
+
+    // true if this node contains an ignore file.
+    bool hasIgnoreFile() const;
 
     // regenerates mIgnored and mParentFilterDownloading based on parent.
     // executes deferred filter operations.
