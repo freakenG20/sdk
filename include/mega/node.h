@@ -474,7 +474,7 @@ template <> inline NewNode*& crossref_other_ptr_ref<LocalNode, NewNode>(LocalNod
 template <> inline LocalNode*& crossref_other_ptr_ref<NewNode, LocalNode>(NewNode* p) { return p->localnode.ptr; }
 
 // returns a list of children in "sync order."
-// i.e. ignore files, files, directories.
+// i.e. ignore files, subdirectories, files.
 list<pair<const string*, LocalNode*>> inSyncOrder(const localnode_map& children);
 list<pair<const string*, Node*>> inSyncOrder(const remotenode_map& children);
 

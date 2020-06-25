@@ -2514,7 +2514,7 @@ list<pair<const string*, LocalNode*>> inSyncOrder(const localnode_map& children)
         {
             if (*child_it.first == Sync::IGNORE_FILENAME)
             {
-                files.emplace_front(child_it);
+                directories.emplace_front(child_it);
             }
             else
             {
@@ -2527,9 +2527,9 @@ list<pair<const string*, LocalNode*>> inSyncOrder(const localnode_map& children)
         }
     }
 
-    files.splice(files.end(), directories);
+    directories.splice(directories.end(), files);
 
-    return files;
+    return directories;
 }
 
 list<pair<const string*, Node*>> inSyncOrder(const remotenode_map& children)
@@ -2543,7 +2543,7 @@ list<pair<const string*, Node*>> inSyncOrder(const remotenode_map& children)
         {
             if (*child_it.first == Sync::IGNORE_FILENAME)
             {
-                files.emplace_front(child_it);
+                directories.emplace_front(child_it);
             }
             else
             {
@@ -2556,9 +2556,9 @@ list<pair<const string*, Node*>> inSyncOrder(const remotenode_map& children)
         }
     }
 
-    files.splice(files.end(), directories);
+    directories.splice(directories.end(), files);
 
-    return files;
+    return directories;
 }
 
 bool isAbove(const LocalNode& x, const LocalNode& y)
