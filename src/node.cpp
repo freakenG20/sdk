@@ -2112,8 +2112,10 @@ void LocalNode::clearAllFilters()
         {
             LocalNode& child = *child_it.second;
 
+            // we could still be ignored by global filters.
+            child.mIgnored = node.isExcluded(child.name);
+
             // clear general filter state.
-            child.mIgnored = false;
             child.mParentFilterDownloading = false;
 
             if (child.type == FOLDERNODE)
