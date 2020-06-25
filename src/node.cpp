@@ -2457,6 +2457,8 @@ void LocalNode::doClearFilters()
     LOG_verbose << "Clearing filters for " << name;
 
     mFilters.clear();
+
+    mPendingFilterOp = nullptr;
 }
 
 void LocalNode::doLoadFilters()
@@ -2467,6 +2469,8 @@ void LocalNode::doLoadFilters()
 
     getlocalpath(&path);
     loadFilters(path);
+
+    mPendingFilterOp = nullptr;
 }
 
 bool LocalNode::hasIgnoreFile() const
@@ -2492,8 +2496,6 @@ void LocalNode::recomputeFilterFlags()
     LOG_verbose << "Performing deferred filter op for " << name;
 
     ((*this).*mPendingFilterOp)();
-
-    mPendingFilterOp = nullptr;
 }
 
 list<pair<const string*, LocalNode*>> inSyncOrder(const localnode_map& children)
