@@ -14870,6 +14870,11 @@ void MegaClient::chatlinkjoin(handle publichandle, const char *unifiedkey)
 {
     reqs.add(new CommandChatLinkJoin(this, publichandle, unifiedkey));
 }
+
+void MegaClient::setchatretentiontime(handle chatid, int period)
+{
+    reqs.add(new CommandSetChatRetentionTime(this, chatid, period));
+}
 #endif
 
 void MegaClient::getaccountachievements(AchievementsDetails *details)
@@ -14885,11 +14890,6 @@ void MegaClient::getmegaachievements(AchievementsDetails *details)
 void MegaClient::getwelcomepdf()
 {
     reqs.add(new CommandGetWelcomePDF(this));
-}
-
-void MegaClient::setchatretentiontime(handle chatid, int period)
-{
-    reqs.add(new CommandSetChatRetentionTime(this, chatid, period));
 }
 
 #ifdef MEGA_MEASURE_CODE
