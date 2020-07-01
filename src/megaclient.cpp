@@ -1992,7 +1992,7 @@ void MegaClient::exec()
                     }
                     LOG_err << "Unexpected sc response: " << pendingscUserAlerts->in;
                 }
-                LOG_err << "Useralerts request failed, continuing without them";
+                LOG_warn << "Useralerts request failed, continuing without them";
                 if (useralerts.begincatchup)
                 {
                     useralerts.begincatchup = false;
