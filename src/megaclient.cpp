@@ -12516,7 +12516,6 @@ bool MegaClient::syncdown(LocalNode* l, string* localpath, bool rubbish)
     list<string> strings;
     remotenode_map nchildren;
     remotenode_map::iterator rit;
-
     bool success = true;
 
     // build array of sync-relevant (in case of clashes, the newest alias wins)
@@ -12537,49 +12536,7 @@ bool MegaClient::syncdown(LocalNode* l, string* localpath, bool rubbish)
              && ait->second.size())
              && (l->parent || l->sync->debris != ait->second))
         {
-            size_t t = localpath->size();
-            string localname = ait->second;
-            fsaccess->name2local(&localname, l->sync->mFilesystemType);
-            localpath->append(fsaccess->localseparator);
-            localpath->append(localname);
-
-            if (l->isIncluded(ait->second))
-            {
-                addchild(&nchildren, &ait->second, &remote, &strings, &l->sync->localdebris, l->sync->mFilesystemType);
-            }
-            else
-            {
-                LOG_debug << "Node excluded " << LOG_NODEHANDLE(remote.nodehandle) << "  Name: " << remote.displayname();
-
-                // Does the now-excluded remote have a local associate?
-                if (remote.localnode)
-                {
-                    LocalNode& local = *remote.localnode;
-
-                    // How did the remote node come to be excluded?
-                    // - Was it moved to an excluded parent?
-                    //   - Then the parent must have changed.
-                    // - Was it renamed to an excluded name?
-                    //   - Then the name must have changed.
-                    //
-                    // We need to rubbish the local associate if either of
-                    // these cases are true to remain consistent with the
-                    // cloud.
-                    assert(local.parent);
-
-                    if (local.parent != l || local.name != ait->second)
-                    {
-                        // Rubbish local associate.
-                        local.deleted = true;
-
-                        // Detach the remote so that it isn't rubbished, too.
-                        local.node = nullptr;
-                        remote.localnode = nullptr;
-                    }
-                }
-            }
-
-            localpath->resize(t);
+            addchild(&nchildren, &ait->second, &remote, &strings, &l->sync->localdebris, l->sync->mFilesystemType);
         }
         else
         {
@@ -12603,10 +12560,60 @@ bool MegaClient::syncdown(LocalNode* l, string* localpath, bool rubbish)
             LOG_verbose << "Skipping syncdown of "
                         << l->name
                         << " as filter is downloading.";
-        }
 
-        // remote changes will be pulled during next syncdown.
-        return false;
+            // remote changes will be pulled in future syncdown.
+            return true;
+        }
+    }
+
+    // filter out excluded nodes.
+    for (auto it = nchildren.begin(); it != nchildren.end(); )
+    {
+        if (l->isExcluded(*it->first))
+        {
+            Node& remote = *it->second;
+
+            LOG_debug << "Node excluded "
+                      << LOG_NODEHANDLE(remote.nodehandle)
+                      << "  Name: "
+                      << remote.displayname();
+
+            // Does the now-excluded remote have a local associate?
+            if (remote.localnode)
+            {
+                LocalNode& local = *remote.localnode;
+
+                // How did the remote node come to be excluded?
+                // - Was it moved to an excluded parent?
+                //   - Then the parent must have changed.
+                // - Was it renamed to an excluded name?
+                //   - Then the name must have changed.
+                //
+                // We need to rubbish the local associate if either of
+                // these cases are true to remain consistent with the
+                // cloud.
+                assert(local.parent);
+
+                if (local.parent != l || local.name != *it->first)
+                {
+                    // Rubbish local associate.
+                    local.deleted = true;
+
+                    // Detach the remote so that it isn't rubbished, too.
+                    local.node = nullptr;
+                    remote.localnode = nullptr;
+
+                    // Update cache.
+                    local.sync->statecacheadd(&local);
+                }
+            }
+
+            it = nchildren.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
     }
 
     const size_t t = localpath->size();
@@ -12641,10 +12648,9 @@ bool MegaClient::syncdown(LocalNode* l, string* localpath, bool rubbish)
             {
                 if (ll->node != rit->second)
                 {
+                    ll->setnode(rit->second);
                     ll->sync->statecacheadd(ll);
                 }
-
-                ll->setnode(rit->second);
 
                 if (*ll == *(FileFingerprint*)rit->second)
                 {
@@ -13034,10 +13040,10 @@ bool MegaClient::syncup(LocalNode* l, dstime* nds, size_t& pending)
             LOG_verbose << "Skipping syncup of "
                         << l->name 
                         << " as filter is downloading.";
-        }
 
-        // queue further syncup.
-        return false;
+            // queue further syncup.
+            return false;
+        }
     }
 
     // check for elements that need to be created, deleted or updated on the
@@ -13110,9 +13116,9 @@ bool MegaClient::syncup(LocalNode* l, dstime* nds, size_t& pending)
                 {
                     if (ll->node != rit->second)
                     {
+                        ll->setnode(rit->second);
                         ll->sync->statecacheadd(ll);
                     }
-                    ll->setnode(rit->second);
 
                     // check if file is likely to be identical
                     if (*ll == *(FileFingerprint*)rit->second)
